@@ -133,13 +133,29 @@ export function showToasts(){
 export function displayToast(header, message){
   removeElementsByClass("hide");
   document.getElementById("toastsContainer").innerHTML += `
-  <div class="toast" data-autohide="false" >
+  <div class="toast" data-autohide="false">
     <div class="toast-header">
       <h7 class="mr-auto">`+header+`</h7>
     </div>
     <div class="toast-body">
       `+message+`
     </div>
+  </div>
+  `
+  showToasts();
+}
+
+export function displayBadgeEarnedToast(imgSrc, badgeName){
+  removeElementsByClass("hide");
+  document.getElementById("toastsContainer").innerHTML += `
+  <div class="toast" data-autohide="false" style="display:grid;align-items:center;grid-template-columns: 25% 75%;">
+    <div>
+      <img style="height:4.5rem;width:4.5rem" src="`+imgSrc+`">
+    </div>
+        <div>
+          <span class="nes-text is-warning">Badge Earned</span><br>
+          <span>`+badgeName+`</span>
+        </div>
   </div>
   `
   showToasts();

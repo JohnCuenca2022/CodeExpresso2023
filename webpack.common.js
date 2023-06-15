@@ -3,9 +3,11 @@ var HtmlWebpackPlugin = require('html-webpack-plugin');
 
 let pages = ["index", "signup", "login", "forgot", "levels", "activate", "verify", "profile", "shop"];
 // let pages = ['login'];
-let seqprog = ["seqprog_easy","level1-1"];
+let seqprog = ["seqprog_easy","level1-1","level1-2"];
+let basicSyntax = ["level3-1"];
 
 pages = pages.concat(seqprog);
+pages = pages.concat(basicSyntax);
 
 module.exports = {
     entry: pages.reduce((config, page) => {
@@ -43,5 +45,11 @@ module.exports = {
     },
     experiments: {
         topLevelAwait: true
+    },
+    externals: {
+        // only define the dependencies you are NOT using as externals!
+        canvg: "canvg",
+        html2canvas: "html2canvas",
+        dompurify: "dompurify"
     }
 }

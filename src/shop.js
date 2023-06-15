@@ -1,6 +1,6 @@
 import { addAllNavbarAnimations, addAllNavbarFunctionality, addProfileButtonFunctionality, displayToast } from './general/essentials';
 import { getAudioSrc, addAudioElementToBody, addSoundEffect} from './general/audioEssentials';
-import { auth, db, loginWithGoogle, loginWithEmailAndPassword, createDefaultGoogleUser } from './firebase/userEssentials';
+import { auth, db, checkForBadges, loginWithGoogle, loginWithEmailAndPassword, createDefaultGoogleUser } from './firebase/userEssentials';
 
 import { initializeApp } from "firebase/app";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
@@ -133,6 +133,80 @@ onAuthStateChanged(auth, async (user) => {
             }
         }
 
+        showSkins(docUserSnap.data().ownedSkins, docSnap.data().skinsArray);
+        function showSkins(userSkins, skinsArray){
+            var skinsContainer = document.getElementById('skinsContainer');
+
+            if(userSkins == null || userSkins == ""){
+                userSkins = [];
+            }
+
+            // console.log("Document data:", docSnap.data());
+            var arr = skinsArray;
+            let unlocked = [];
+            let locked = [];
+
+            //sort skins
+            for (let index = 0; index < arr.length; index++) {
+                const element = arr[index];
+                if(userSkins.includes(element.id)){
+                    unlocked.push(element);
+                }else{
+                    locked.push(element);
+                }
+            }
+
+            //show locked/unpurchased skins
+            for (let index = 0; index < locked.length; index++) {
+                const element = locked[index];
+                var id = element.id;
+                var name = element.name;
+                var price = element.price
+                var srcPicture = element.srcPicture;
+
+                skinsContainer.innerHTML+=
+                    `
+                    <div class="nes-container nes-pointer is-dark is-centered with-title skins-item" data-id="`+id+`" data-name="`+name+`" data-price="`+price+`" style="background-color: black;height:20rem;border-color:gray;">
+                        <p class="title" style="background-color: black;">`+name+`</p>
+                        <img src="`+srcPicture+`" style="height:100%;">
+                    </div>
+                    `;
+            }
+
+            var skinsItems = document.getElementsByClassName("skins-item")
+            for (let index = 0; index < skinsItems.length; index++) {
+                const element = skinsItems[index];
+                element.addEventListener('click', function(){
+                    //item id
+                    let itemID = this.getAttribute("data-id");
+                    let itemName = this.getAttribute("data-name")
+                    let itemPrice = this.getAttribute("data-price")
+
+                    //deselect all
+                    for (let index = 0; index < skinsItems.length; index++) {
+                        const element = skinsItems[index];
+                        element.style.borderColor = "gray";
+                    }
+
+                    //select item
+                    this.style.borderColor = "white";
+
+                    purchaseModal.show();
+
+                    purchaseMessage.innerHTML = "Are you sure you want to purchase "+"<span class='nes-text is-warning'>"+itemName+"</span>"+" Theme for <span><i class='nes-icon coin is-small'></i>"+itemPrice+"<span>";
+
+                    var old_element = document.getElementById("purchaseConfirm");
+                    var new_element = old_element.cloneNode(true);
+                    old_element.parentNode.replaceChild(new_element, old_element);
+
+                    new_element.addEventListener('click', function(){
+                        purchaseItem(itemID, "skins");
+                    });
+                    
+                });
+            }
+        }
+
         showBackgrounds(docUserSnap.data().ownedBackgrounds, docSnap.data().backgroundsArray);
         async function showBackgrounds(userBackgrounds, backgroundsArray){
             var backgroundsContainer = document.getElementById('backgroundsContainer');
@@ -206,6 +280,8 @@ onAuthStateChanged(auth, async (user) => {
                 });
             }
         }
+
+        checkContainer();
     }
 });
 
@@ -233,6 +309,7 @@ async function purchaseItem(itemID, type){
 
             let ownedThemes = docSnapUser.data().ownedThemes;
             let ownedBackgrounds = docSnapUser.data().ownedBackgrounds;
+            let ownedSkins = docSnapUser.data().ownedSkins;
             let newPoints = points - price;
 
             switch (type) {
@@ -247,6 +324,23 @@ async function purchaseItem(itemID, type){
                         const el1 = document.querySelector('[data-id='+itemID+']');
                         el1.remove();
                         document.getElementById("displayPoints").innerHTML = newPoints;
+                        checkContainer();
+                        checkForBadges(user);
+                    });
+                    break;
+                case "skins":
+                    ownedSkins.push(itemID);
+                    await updateDoc(docRefUser, {
+                        ownedSkins: ownedSkins,
+                        points: newPoints
+                    }).then(function(){
+                        displayToast("Purchase Completed", "Item Added");
+                        purchaseModal.toggle();
+                        const el1 = document.querySelector('[data-id='+itemID+']');
+                        el1.remove();
+                        document.getElementById("displayPoints").innerHTML = newPoints;
+                        checkContainer();
+                        checkForBadges(user);
                     });
                     break;
                 case "backgrounds":
@@ -260,6 +354,8 @@ async function purchaseItem(itemID, type){
                         const el1 = document.querySelector('[data-id='+itemID+']');
                         el1.remove();
                         document.getElementById("displayPoints").innerHTML = newPoints;
+                        checkContainer();
+                        checkForBadges(user);
                     });
                     break;
             
@@ -268,4 +364,27 @@ async function purchaseItem(itemID, type){
             }
         }
     });
+}
+
+function checkContainer(){
+    var themesContainer = document.getElementById('themesContainer');
+    if (themesContainer.querySelectorAll("*").length==0) {
+        themesContainer.innerHTML=`
+        <span style="height:5rem;width:100%;display:grid;align-items:center;justify-content:center;">There are no more items left</span>
+        `
+    }
+
+    var skinsContainer = document.getElementById('skinsContainer');
+    if (skinsContainer.querySelectorAll("*").length==0) {
+        skinsContainer.innerHTML=`
+        <span style="height:5rem;width:100%;display:grid;align-items:center;justify-content:center;">There are no more items left</span>
+        `
+    }
+
+    var backgroundsContainer = document.getElementById('backgroundsContainer');
+    if (backgroundsContainer.querySelectorAll("*").length==0) {
+        backgroundsContainer.innerHTML=`
+        <span style="height:5rem;width:100%;display:grid;align-items:center;justify-content:center;">There are no more items left</span>
+        `
+    }
 }

@@ -13,7 +13,7 @@
     <link rel="mask-icon" href="../favicon/safari-pinned-tab.svg" color="#5bbad5">
 
   </head>
-  <body>
+  <body style="min-width: 0;">
     <!-- toast -->
     <div id="toastsContainer" style="position: fixed; top: 8rem; right: 0; z-index:200;">
       
@@ -50,16 +50,13 @@
     </div>
 
     <!-- navbar -->
-    <nav style="background-color: transparent;"id="navbar">
+
+    <nav style="background-color: transparent;width:98vw;align-items: center;" id="navbar">
       <div class="nav-section back-button">
-        <!-- <button id="back" tabindex="0">
-          <img id="back-button-img" class="nes-pointer btn-sound" src="../assets/images/back_default.png" style="width:3rem;" alt="back">
-        </button> -->
+
       </div>
       <div class="nav-section nav-title">
-        <!-- <a href="index.html" style="position:relative;width:100%;">
-            <span style="color:#edc13a;font-family:'KongText';font-size:3rem;position:absolute;top:-1rem;left:1rem;right:1rem;">CODE EXPRESSO</span>
-        </a> -->
+
       </div>
       <div class="nav-section nav-buttons">
         <button id="profile" tabindex="0">
@@ -75,14 +72,15 @@
       <!-- HOME PAGE VARIANTS -->
 
       <!-- Default -->
-      <div id="defaultHome" style="width:100%;height:100%;display: none;align-items: center;">
+      <div id="defaultHome" style="height:100%;width:100%;display: none;align-items: center;">
         <div style="display: grid;justify-content: center;align-items: center;">
-          <span style="font-size:6rem;">CODE EXPRESSO</span>
+          <span style="font-size:max(4vw, 1.5rem);margin-bottom: max(4vh, 2rem);">CODE EXPRESSO</span>
+          <div style="display: grid;justify-items: center;row-gap: max(0.8vh, 0.2rem);">
+            <button id="start" type="button" class="nes-btn is-warning btn-sound start" style="font-size:max(1.5vw,1rem);height:max(4vw, 2.5rem);width:max(20vw,16rem);">Start</button><br>
+            <button type="button" class="nes-btn is-warning btn-sound levels" style="font-size:max(1.5vw,1rem);height:max(4vw, 2.5rem);width:max(20vw,16rem);">Levels</button>
+          </div>
         </div>
-        <div style="width:100%;display: grid;justify-items: center;margin-top:-15rem;">
-          <button id="start" type="button" class="nes-btn is-warning btn-sound start" style="font-size:1.5rem;height:3.5rem;width:25%;margin-bottom:2rem;">Start</button><br>
-          <button type="button" class="nes-btn is-warning btn-sound levels" style="font-size:1.5rem;height:3.5rem;width:25%;">Levels</button>
-        </div>
+        
       </div>
 
       <!-- Fantasy -->

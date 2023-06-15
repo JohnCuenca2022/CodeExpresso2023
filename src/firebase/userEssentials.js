@@ -1,8 +1,8 @@
 import { firebaseConfig } from "./config";
-import { displayToast } from "../general/essentials";
+import { displayToast, displayBadgeEarnedToast } from "../general/essentials";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, sendPasswordResetEmail, signOut, getMultiFactorResolver, PhoneAuthProvider, PhoneMultiFactorGenerator, RecaptchaVerifier } from "firebase/auth";
-import { getFirestore, doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, Timestamp } from 'firebase/firestore';
 
 import { Modal, Toast } from 'bootstrap';
 import { get } from "jquery";
@@ -362,9 +362,11 @@ function createDefaultGoogleUser(user){
       displayToast("Please wait","Redirecting...");
       const userDBRef = doc(db, "users", user.uid);
       setDoc(userDBRef, {
-          username: "New User",
+          username: "",
           ownedThemes: ["defaultTheme"],
           theme: "defaultTheme",
+          ownedSkins: ["defaultSkin"],
+          skin: "defaultSkin",
           ownedBackgrounds: ["defaultBackground"],
           background: "defaultBackground",
           earnedBadges: [],
@@ -386,6 +388,110 @@ function createDefaultGoogleUser(user){
       });
     }
   });
+}
+
+export async function checkForBadges(user){
+  const docRefUser = doc(db, "users", user.uid);
+  const docSnapUser = await getDoc(docRefUser);
+
+  let earnedBadges = docSnapUser.data().earnedBadges;
+  let history = docSnapUser.data().history;
+
+  let willUpdate = false;
+
+  //array of badges/themes/backgrounds
+  const docRef = doc(db, "badgesList", "badges");
+  const docSnap = await getDoc(docRef);
+
+  let backgroundsArray = docSnap.data().backgroundsArray;
+  let skinsArray = docSnap.data().skinsArray;
+  let themesArray = docSnap.data().themesArray;
+
+  let badgesArray = docSnap.data().badgesArray;
+
+  let totalNumberOfShopItems = backgroundsArray.length + skinsArray.length + themesArray.length;
+  
+  let ownedBackgrounds = docSnapUser.data().ownedBackgrounds;
+  let ownedSkins = docSnapUser.data().ownedSkins;
+  let ownedThemes = docSnapUser.data().ownedThemes;
+
+  let itemsOwned = ownedBackgrounds.length + ownedSkins.length + ownedThemes.length;
+  // badge7: You hoarder - Buy every item from the shop.
+  console.log(itemsOwned,totalNumberOfShopItems,itemsOwned == totalNumberOfShopItems)
+  if(itemsOwned == totalNumberOfShopItems && !earnedBadges.includes("badge7")){
+    earnedBadges.push("badge7");
+    history.push({dateTime: Timestamp.fromDate(new Date()), description: "Badge Earned: You hoarder"})
+    displayBadgeEarnedToast(badgesArray[37].srcPicture, "You hoarder");
+    willUpdate = true;
+  }
+
+  // badge8: I Choose You - Customize your profile.
+  let username = docSnapUser.data().username;
+  let profilePicture = docSnapUser.data().profilePicture;
+  if(username != "" && profilePicture != "" && !earnedBadges.includes("badge8")){
+    earnedBadges.push("badge8");
+    history.push({dateTime: Timestamp.fromDate(new Date()), description: "Badge Earned: I Choose You"})
+    displayBadgeEarnedToast(badgesArray[38].srcPicture, "I Choose You");
+    willUpdate = true;
+  }
+
+  // badge9: Make it rain - Buy your first item from the store.
+  if(itemsOwned > 3 && !earnedBadges.includes("badge9")){
+    earnedBadges.push("badge9");
+    history.push({dateTime: Timestamp.fromDate(new Date()), description: "Badge Earned: Make it rain"})
+    displayBadgeEarnedToast(badgesArray[39].srcPicture, "Make it rain");
+    willUpdate = true;
+  }
+
+  // badge10: Money CAN buy you happiness - Buy 10 items from the item shop.
+  if(itemsOwned >= 10 && !earnedBadges.includes("badge10")){
+    earnedBadges.push("badge10");
+    history.push({dateTime: Timestamp.fromDate(new Date()), description: "Badge Earned: Money CAN buy you happiness"})
+    displayBadgeEarnedToast(badgesArray[1].srcPicture, "Money CAN buy you happiness");
+    willUpdate = true;
+  }
+
+  // badge11: Hey bro, wanna get coffee in Starbs. - Buy the café theme from the store.
+  if(ownedThemes.includes("theme3") >= 1 && !earnedBadges.includes("badge11")){
+    earnedBadges.push("badge11");
+    history.push({dateTime: Timestamp.fromDate(new Date()), description: "Badge Earned: Hey bro, wanna get coffee in Starbs."})
+    displayBadgeEarnedToast(badgesArray[2].srcPicture, "Hey bro, wanna get coffee in Starbs.");
+    willUpdate = true;
+  }
+
+  // badge13: Who lives in a pineapple under the sea - Buy the Tropical Theme from the store.
+  if(ownedThemes.includes("theme2") >= 1 && !earnedBadges.includes("badge13")){
+    earnedBadges.push("badge13");
+    history.push({dateTime: Timestamp.fromDate(new Date()), description: "Badge Earned: Who lives in a pineapple under the sea"})
+    displayBadgeEarnedToast(badgesArray[4].srcPicture, "Who lives in a pineapple under the sea");
+    willUpdate = true;
+  }
+
+  // badge14: You shall PASS!! - Buy the Fantasy Theme from the store.
+  if(ownedThemes.includes("theme1") >= 1 && !earnedBadges.includes("badge14")){
+    earnedBadges.push("badge14");
+    history.push({dateTime: Timestamp.fromDate(new Date()), description: "Badge Earned: You shall PASS!!"})
+    displayBadgeEarnedToast(badgesArray[5].srcPicture, "You shall PASS!!");
+    willUpdate = true;
+  }
+
+  // badge31: Express your self - Buy a skin in the store.
+  if(ownedSkins.length-1 >= 1 && !earnedBadges.includes("badge31")){
+    earnedBadges.push("badge31");
+    history.push({dateTime: Timestamp.fromDate(new Date()), description: "Badge Earned: Express your self"})
+    displayBadgeEarnedToast(badgesArray[24].srcPicture, "Express your self");
+    willUpdate = true;
+  }
+
+  
+
+
+  if(willUpdate){
+    await updateDoc(docRefUser, {
+      earnedBadges: earnedBadges,
+      history: history
+    });
+  }
 }
 
 export { getUserTheme, createDefaultGoogleUser};

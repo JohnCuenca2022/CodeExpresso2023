@@ -78,6 +78,10 @@ button.nes-btn{
     background-color: var(--mainBlack);
 }
 
+.nes-list.is-circle li::before{
+    color: var(--mainWhite);
+}
+
 /* NAVBAR */
 nav{
     height: 5rem;
@@ -452,6 +456,14 @@ x:-o-prefocus, .errorBot{
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
+}
+
+/* ////////////////////////////////////////////// */
+
+/* game */
+
+#gameCanvas:focus{
+    outline: none;
 }
 
 /* progress[value]::-moz-progress-bar{

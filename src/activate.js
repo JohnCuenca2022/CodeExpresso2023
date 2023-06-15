@@ -188,9 +188,11 @@ form.addEventListener('submit', (event) => {
                             displayToast("Please wait","Redirecting...");
                             const userDBRef = doc(db, "users", user.uid);
                             setDoc(userDBRef, {
-                                username: "New User",
+                                username: "",
                                 ownedThemes: ["defaultTheme"],
                                 theme: "defaultTheme",
+                                ownedSkins: ["defaultSkin"],
+                                skin: "defaultSkin",
                                 ownedBackgrounds: ["defaultBackground"],
                                 background: "defaultBackground",
                                 earnedBadges: [],

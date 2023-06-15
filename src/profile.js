@@ -1,6 +1,6 @@
-import { addAllNavbarAnimations, addAllNavbarFunctionality, addProfileButtonFunctionality, displayToast } from './general/essentials';
+import { addAllNavbarAnimations, addAllNavbarFunctionality, addProfileButtonFunctionality, displayToast, showToasts } from './general/essentials';
 import { getAudioSrc, addAudioElementToBody, addSoundEffect} from './general/audioEssentials';
-import { auth, db, signOutUser } from './firebase/userEssentials';
+import { auth, db, signOutUser, checkForBadges } from './firebase/userEssentials';
 
 import { onAuthStateChanged, signOut, multiFactor, getMultiFactorResolver, PhoneAuthProvider, PhoneMultiFactorGenerator, RecaptchaVerifier, reauthenticateWithCredential, EmailAuthProvider, GoogleAuthProvider } from "firebase/auth";
 import { doc, getDoc, getDocs, collection, setDoc, updateDoc } from 'firebase/firestore';
@@ -8,6 +8,8 @@ import { getStorage, ref, uploadBytes, uploadBytesResumable, getDownloadURL } fr
 
 import { Modal, Toast } from 'bootstrap';
 import $, { error } from 'jquery';
+
+import { jsPDF } from "jspdf";
 
 // css
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -44,7 +46,7 @@ document.getElementById("profile").addEventListener("click", function(){
 });
 
 // -------------------------------------
-
+showToasts()
 
 // SHOW CONTENT SELECTION
 const radioButtons = document.getElementsByClassName('nes-radio');
@@ -109,6 +111,8 @@ onAuthStateChanged(auth, async (user) => {
             document.getElementById("userProfilePic").src = defaultPic;
             document.getElementById("uploadUserProfileImage").src = defaultPic;
         }
+        //display name
+        document.getElementById("nameInput").value = docSnapUser.data().username;
 
         //display email
         document.getElementById("emailInput").value = user.email;
@@ -268,6 +272,87 @@ onAuthStateChanged(auth, async (user) => {
             }
         }
 
+        //display owned themes + add click event listeners
+        showSkins(docSnapUser.data().ownedSkins, docSnap.data().skinsArray, docSnapUser.data().skin);
+        function showSkins(userSkins, skinsArray, selected){
+            var skinsContainer = document.getElementById('skinsContainer');
+
+            if(userSkins == null || userSkins == ""){
+                userSkins = [];
+            }
+
+            // console.log("Document data:", docSnap.data());
+            var arr = skinsArray;
+            let unlocked = [];
+            let locked = [];
+
+            //sort themes
+            for (let index = 0; index < arr.length; index++) {
+                const element = arr[index];
+                if(userSkins.includes(element.id)){
+                    unlocked.push(element);
+                }else{
+                    locked.push(element);
+                }
+            }
+
+            //show unlocked themes
+            for (let index = 0; index < unlocked.length; index++) {
+                const element = unlocked[index];
+                var id = element.id;
+                var name = element.name;
+                var srcPicture = element.srcPicture;
+                // console.log(selected, id)
+                // console.log(selected==id)
+                if(selected==id){
+                    skinsContainer.innerHTML+=
+                `
+                    <div class="nes-container nes-pointer is-dark is-centered with-title skin-item" data-id="`+id+`" style="background-color: black;height:17rem;">
+                        <p class="title" style="background-color: black;">`+name+`</p>
+                        <img src="`+srcPicture+`" style="height:100%;">
+                    </div>
+                    `;
+                }else{
+                    skinsContainer.innerHTML+=
+                `
+                    <div class="nes-container nes-pointer is-dark is-centered with-title skin-item" data-id="`+id+`" style="background-color: black;height:17rem;border-color:gray;">
+                        <p class="title" style="background-color: black;">`+name+`</p>
+                        <img src="`+srcPicture+`" style="height:100%;">
+                    </div>
+                    `;
+                }
+                
+            }
+
+            var skinItems = document.getElementsByClassName("skin-item")
+            for (let index = 0; index < skinItems.length; index++) {
+                const element = skinItems[index];
+                element.addEventListener('click', function(){
+                    //item id
+                    let itemID = this.getAttribute("data-id");
+
+                    //deselect all
+                    for (let index = 0; index < skinItems.length; index++) {
+                        const element = skinItems[index];
+                        element.style.borderColor = "gray";
+                    }
+
+                    //select item
+                    this.style.borderColor = "white";
+                    
+
+                    onAuthStateChanged(auth, async(user) => {
+                        if (user) {
+                            const ref = doc(db, "users", user.uid); //user
+                            await updateDoc(ref, {
+                                skin: itemID
+                            });
+                        }
+                    });
+                })
+            }
+        }
+
         //display owned backgrounds + add click event listeners
         showBackgrounds(docSnapUser.data().ownedBackgrounds, docSnap.data().backgroundsArray, docSnapUser.data().background);
         async function showBackgrounds(userBackgrounds, backgroundsArray, selected){
@@ -400,7 +485,13 @@ onAuthStateChanged(auth, async (user) => {
 
         let overallProg = prog1 + prog2 + prog3 + prog4 + prog5 + prog6 + prog7 + prog8 + prog9 + prog10;
         document.getElementById("levelsCompletedProgress").value = overallProg;
-        document.getElementById("levelsCompleted").innerHTML = overallProg + "/100 Levels Completed"
+        document.getElementById("levelsCompleted").innerHTML = overallProg + "/300 Levels Completed"
+
+        // generateReportPDF
+        document.getElementById("print").addEventListener('click', function(){
+            generateReportPDF(user, docSnapUser);
+        });
+        
 
         let historyArray = docSnapUser.data().history;
         //show newest first
@@ -427,6 +518,57 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
+// GENERATE PDF
+function generateReportPDF(user, docSnapUser){
+    let base64Font = "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AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAQAAAAEAAAAAgAAAAAAAgACAAIAAgAAAAAAAAAEAAQAAAAAAAAAAAACAAAAAgAAAAAAAgAAAAIAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAzMCzQADAAAxESERAzMCzf0zAAIBgAAAAoADAAADAAcAAAEhESEVIRUhAYABAP8AAQD/AAMA/gCAgAACAQABgAMAAwAAAwAHAAABMxEjATMRIwEAgIABgICAAwD+gAGA/oAAAgCAAIADgAMAABsAHwAAATMVITUzFTMVIxUzFSMVIzUhFSM1IzUzNSM1MxcVITUBAIABAICAgICAgP8AgICAgICAAQADAICAgICAgICAgICAgICAgIAAAAEAgAAAA4ADgAAbAAABIRUhFSEVIRUzFSMVIxUhNSE1ITUhNSM1MzUzAYABAAEA/YACAICAgP8A/wACgP4AgICAA4CAgICAgICAgICAgICAAAADAAAAAAOAA4AAAwAdACEAABMhESEBMxEjFSMVIxUjFSMVITUzNTM1MzUzNTM1MwMhESGAAQD/AAKAgICAgICA/wCAgICAgICAAQD/AAOA/wABAP8AgICAgICAgICAgID+AP8AAAAEAAAAAAQAAwAAGQAdACEAKQAAASEVMxUhFSMRMxUhNSMVITUjNTM1MzUjNTsBFTM1FxUzNQUVIxUhNSM1AQABgIABAICA/wCA/gCAgICAgICAgID+gIABgIADAICAgP8AgICAgICAgICAgICAgICAgICAAAEBgAGAAwADAAAHAAABIREjFSE1MwIAAQCA/wCAAwD/AICAAAEBgAAAAwADAAALAAABIRUjETMVITUjETMCAAEAgID/AICAAwCA/gCAgAIAAAABAYAAAAMAAwAACwAAASEVMxEjFSE1MxEjAYABAICA/wCAgAMAgP4AgIACAAAAAQCAAIADAAMAABMAABMhFTM1IREjFTMRITUjFSERMzUjgAEAgAEAgID/AID/AICAAwCAgP8AgP8AgIABAIAAAAEAgACAA4ADAAALAAABIREhFSERIREhNSEBgAEAAQD/AP8A/wABAAMA/wCA/wABAIAAAQGAAAADAAGAAAcAAAEhESMVITUzAgABAID/AIABgP8AgIAAAQCAAYADgAIAAAMAABMhFSGAAwD9AAIAgAABAYAAAAKAAQAAAwAAASERIQGAAQD/AAEA/wAAAQCAAIADAAMAABEAAAEhFSMVIxUjFSMVIxEzNTM1MwIAAQCAgICAgICAgAMAgICAgIABAICAAAACAIAAAAOAAwAACwAXAAABIRUzESMVITUjETsBETMVIxUhESM1MzUBAAIAgID+AICAgICAAQCAgAMAgP4AgIACAP8AgIABAICAAAEBAAAAAwADAAALAAABIREzFSE1MxEjNTMBgAEAgP4AgICAAwD9gICAAYCAAAABAIAAAAOAAwAAFQAAASEVMxEjFSEVIRUhETM1IREhFSE1MwEAAgCAgP6AAgD9AIABgP8A/wCAAwCA/wCAgIABAIABAICAAAABAIAAAAOAAwAAGwAAASEVMxUjFTMRIxUhNSM1IRUhESM1MzUhFSE1MwEAAgCAgICA/gCAAQABAICA/wD/AIADAICAgP8AgICAgAEAgICAgAAAAQCAAAADgAMAAA0AABMhETMRIREzFSMRIREhgAEAgAEAgID/AP6AAwD+gAEA/wCA/wABAAAAAQCAAAADgAMAABMAABMhFSEVIRUzESMVITUjNSEVIREhgAMA/YACAICA/gCAAQABAP4AAwCAgID/AICAgIABAAAAAgCAAAADgAMAAA8AEwAAASEVIRUhFTMRIxUhNSMRMxMRIREBAAIA/oABgICA/gCAgIABAAMAgICA/wCAgAIA/wD/AAEAAAEAgAAAA4ADAAALAAATIRUjESMRIREzESGAAwCAgP8AgP6AAwCA/wD+gAGAAQAAAAMAgAAAA4ADAAATABcAGwAAASEVMxUjFTMRIxUhNSMRMzUjNTsBFSE1AREhEQEAAgCAgICA/gCAgICAgAEA/wABAAMAgICA/wCAgAEAgICAgP8A/wABAAACAIAAAAOAAwAADwATAAABIRUzESMVITUhNSE1IxE7AREhEQEAAgCAgP4AAYD+gICAgAEAAwCA/gCAgICAAQD/AAEAAAIBgACAAoADAAADAAcAAAEhESEVIREhAYABAP8AAQD/AAMA/wCA/wAAAAIBgAAAAoADAAADAAkAAAEhESEVIREjFSMBgAEA/wABAICAAwD/AID/AIAAAQEAAIADAAMAABMAAAEhFSMVIxUzFTMVITUjNSM1MzUzAgABAICAgID/AICAgIADAICAgICAgICAgAAAAgEAAIADgAMAAAMABwAAASERIRUhESEBAAKA/YACgP2AAwD/AID/AAAAAQEAAIADAAMAABMAAAEhFTMVMxUjFSMVITUzNTM1IzUjAQABAICAgID/AICAgIADAICAgICAgICAgAAAAgCAAAADgAMAAA8AEwAAASEVMxEjFSE1IREhFSE1MxMhFSEBAAIAgID+gAEA/wD/AICAAQD/AAMAgP8AgIABAICA/gCAAAEAgAAAA4ADAAATAAABIRUzESMVIREzNSERIRUhNSMRMwEAAgCAgP8AgP8AAgD9gICAAwCA/wCAAQCA/gCAgAIAAAIAgAAAA4ADAAALAA8AAAEhFTMRIREhESEROwERIREBAAIAgP8A/wD/AICAAQADAID9gAEA/wACgP8AAQAAAwCAAAADgAMAAAsADwATAAATIRUzFSMVMxEjFSEBFSE1AREhEYACgICAgID9gAEAAQD/AAEAAwCAgID/AIACgICA/wD/AAEAAAABAIAAAAOAAwAAEwAAASEVMxUhNSERITUhFSMVITUjETMBAAIAgP8A/wABAAEAgP4AgIADAICAgP4AgICAgAIAAAACAIAAAAOAAwAABwALAAATIRUzESMVIQERIRGAAoCAgP2AAQABAAMAgP4AgAKA/gACAAAAAQCAAAADgAMAAAsAABMhFSEVIRUhESEVIYADAP4AAQD/AAIA/QADAICAgP8AgAAAAQCAAAADgAMAAAkAABMhFSEVIRUhESGAAwD+AAEA/wD/AAMAgICA/oAAAQCAAAADgAMAABUAAAEhFTMVITUhESE1IzUhESMVITUjETMBAAIAgP8A/wABAIABgID+AICAAwCAgID+AICA/wCAgAIAAAEAgAAAA4ADAAALAAATIREhESERIREhESGAAQABAAEA/wD/AP8AAwD/AAEA/QABgP6AAAABAQAAAAMAAwAACwAAASEVIxEzFSE1MxEjAQACAICA/gCAgAMAgP4AgIACAAAAAQCAAAADgAMAAA8AAAEhFSMRIxUhNSM1IRUzESEBAAKAgID+gIABAID/AAMAgP4AgICAgAIAAAABAIAAAAOAAwAAFwAAEyERMzUzNSEVIxUjETMVMxUhNSM1IxEhgAEAgIABAICAgID/AICA/wADAP8AgICAgP8AgICAgP8AAAABAIAAAAMAAwAABQAAEyERIRUhgAEAAYD9gAMA/YCAAAEAgAAABAADAAATAAATIRUzFTM1MzUhESERIxUjNSMRIYABAICAgAEA/wCAgID/AAMAgICAgP0AAYCAgP6AAAABAIAAAAOAAwAADwAAEyEVMxUzESERITUjNSMRIYABAICAAQD/AICA/wADAICAAQD9AICA/wAAAAIAgAAAA4ADAAALAA8AAAEhFTMRIxUhNSMROwERIREBAAIAgID+AICAgAEAAwCA/gCAgAIA/gACAAACAIAAAAOAAwAACQANAAATIRUzESMVIREhAREhEYACgICA/oD/AAEAAQADAID/AID/AAKA/wABAAAAAgCAAAADgAMAABEAFwAAASEVMxEjFTMVIzUjFSE1IxE7AREzNTMRAQACAICAgICA/oCAgICAgAMAgP6AgICAgIACAP4AgAGAAAACAIAAAAOAAwAADQARAAATIRUzESMVMxEhESERIQERIRGAAoCAgID/AP8A/wABAAEAAwCA/wCA/wABAP8AAoD/AAEAAAIAgAAAA4ADAAAXABsAAAEhFTMVIxUzESMVITUjNSEVIREhNSM1OwEVITUBAAIAgICAgP4AgAEAAQD+gICAgAGAAwCAgID/AICAgIABAICAgIAAAAEAgAAAA4ADAAAHAAATIRUhESERIYADAP8A/wD/AAMAgP2AAoAAAQCAAAADgAMAAAsAABMhESERIREjFSE1I4ABAAEAAQCA/gCAAwD9gAKA/YCAgAAAAQCAAAADgAMAAA8AABMhESERIREjFSMVITUjNSOAAQABAAEAgID/AICAAwD+AAIA/gCAgICAAAABAIAAAAQAAwAAEwAAEyERMzUzFTMRIREhNSM1IxUjFSGAAQCAgIABAP8AgICA/wADAP6AgIABgP0AgICAgAAAAQCAAAADgAMAAB8AABMhFSE1IRUjFSMVMxUzESM1IzUhFSMVIxEzNTM1IzUjgAEAAQABAICAgICAgP8AgICAgICAAwCAgICAgID/AICAgIABAICAgAABAIAAAAOAAwAADwAAEyERIREhESMVIxEhESM1I4ABAAEAAQCAgP8AgIADAP8AAQD/AID+gAGAgAAAAQCAAAADgAMAABUAABMhFSMVIxUjFSMVIRUhETM1MzUzNSGAAwCAgICAAgD9AICAgP6AAwCAgICAgIABAICAgAAAAQGAAAADAAMAAAcAAAEhFSMRMxUhAYABgICA/oADAID+AIAAAQCAAIADAAMAABEAABMhFTMVMxUzESM1IzUjNSM1I4ABAICAgICAgICAAwCAgID/AICAgIAAAQGAAAADAAMAAAcAAAEhESE1MxEjAYABgP6AgIADAP0AgAIAAAABAQACgAOAA4AACwAAASEVMxUhNSMVITUzAYABgID/AID/AIADgICAgICAAAEAgAAAA4AAgAADAAA3IRUhgAMA/QCAgAAAAQEAAYACgAMAAAcAAAEhETMVITUjAQABAID/AIADAP8AgIAAAgCAAAAEAAKAAA0AEQAAASERMxUhNSMVITUjETsBESERAQACgID/AID+gICAgAEAAoD+AICAgIABgP6AAYAAAAIAgAAAA4ADgAAJAA0AABMhESEVMxEjFSEBESERgAEAAYCAgP2AAQABAAOA/wCA/oCAAgD+gAGAAAABAIAAAAOAAoAAEwAAASEVMxUhNSERITUhFSMVITUjETMBAAIAgP8A/wABAAEAgP4AgIACgICAgP6AgICAgAGAAAACAIAAAAOAA4AACQANAAABIREhNSMRMzUhBREhEQKAAQD9gICAAYD/AAEAA4D8gIABgICA/oABgAAAAgCAAAADgAKAAA8AEwAAASEVMxUjFSEVIRUhNSMROwEVITUBAAIAgID+gAIA/YCAgIABAAKAgICAgICAAYCAgAAAAQEAAAADgAMAAA8AAAEhFSEVMxUjESERIzUzNTMCAAGA/wCAgP8AgICAAwCAgID+gAGAgIAAAgCA/4ADgAKAAA0AEQAAASERIxUhNSE1ITUjETsBESERAQACgID+AAGA/oCAgIABAAKA/YCAgICAAQD/AAEAAAEAgAAAA4ADgAALAAATIREhFTMRIREhESGAAQABgID/AP8A/wADgP8AgP4AAgD+AAAAAgGAAAACgAOAAAMABwAAASEVIRUhESEBgAEA/wABAP8AA4CAgP2AAAIAgP+AAwADgAADAA8AAAEhFSEVIREjFSE1IzUhFTMCAAEA/wABAID+gIABAIADgICA/YCAgICAAAABAIAAAAOAA4AAFQAAEyERITUhFSMVIxUzFTMVITUjNSMRIYABAAEAAQCAgICA/wCAgP8AA4D+gICAgICAgICA/wAAAAEBAAAAAwADgAAHAAABIREhFSE1IwEAAQABAP6AgAOA/QCAgAAAAQAAAAADgAKAABEAABEhFTM1IRUzESERIxEjESMRIQGAgAEAgP8AgICA/wACgICAgP4AAgD+AAIA/gAAAQCAAAADgAKAAAkAABMhFTMRIREhESGAAoCA/wD/AP8AAoCA/gACAP4AAAACAIAAAAOAAoAACwAPAAABIRUzESMVITUjETsBESERAQACAICA/gCAgIABAAKAgP6AgIABgP6AAYAAAgCA/4ADgAKAAAkADQAAEyEVMxEjFSERIQERIRGAAoCAgP6A/wABAAEAAoCA/wCA/wACgP8AAQAAAAIAgP+ABAACgAANABEAAAEhETMVIxUhESE1IxE7AREhEQEAAoCAgP8A/oCAgIABAAKA/gCAgAEAgAEA/wABAAABAIAAAAOAAoAADwAAEyEVMzUhFTMVITUjFSMRIYABAIABAID/AICA/wACgICAgICAgP6AAAABAIAAAAOAAoAAEwAAASEVIRUhFTMVIxUhNSE1ITUjNTMBAAIA/oABgICA/YACAP6AgIACgICAgICAgICAgAAAAQCAAAADgAMAABMAAAEhFSEVIREzNSEVIxUhNSMRIzUzAQABAAEA/wCAAQCA/oCAgIADAICA/oCAgICAAYCAAAEAgAAABAACgAAPAAATIREhESERMxUhNSMVITUjgAEAAQABAID/AID+gIACgP4AAgD+AICAgIAAAQCAAAADgAKAAA8AABMhESERIREjFSMVITUjNSOAAQABAAEAgID/AICAAoD+gAGA/oCAgICAAAABAIAAAAQAAoAAEQAAEyERMxEzETMRIREhNSMVITUjgAEAgICAAQD+gID/AIACgP4AAgD+AAIA/YCAgIAAAAEAgAAAA4ACgAATAAATIRUhNSERIxUzESE1IRUhETM1I4ABAAEAAQCAgP8A/wD/AICAAoCAgP8AgP8AgIABAIAAAAEAgP+AA4ACgAAPAAATIREhESERIxUhNSE1ITUjgAEAAQABAID+AAGA/oCAAoD+gAGA/YCAgICAAAABAIAAAAOAAoAAEwAAEyEVIxUjFSMVIRUhNTM1MzUzNSGAAwCAgIABgP0AgICA/oACgICAgICAgICAgAABAIAAAAMAAwAAEwAAASEVIxUjFTMRMxUhNSMRITUhNTMCAAEAgICAgP8AgP8AAQCAAwCAgID/AICAAQCAgAAAAQGAAAACgAMAAAMAAAEhESEBgAEA/wADAP0AAAEBAAAAA4ADAAATAAABIRUzFSEVIREjFSE1MxEzNSM1IwEAAQCAAQD/AID/AICAgIADAICAgP8AgIABAICAAAABAIABAAOAAoAAEwAAASEVMxUzNTMVIxUhNSM1IxUjNTMBAAEAgICAgP8AgICAgAKAgICAgICAgICAAAADAAAAAAOAA4AAEwAfACcAAAEhFTMVMxEjFSMVITUjNSMRMzUzMRUjETMVITUzESM1BSEVIRUhFSEBAAGAgICAgP6AgICAgICAAYCAgP6AAYD/AAEA/oADgICA/oCAgICAAYCAgP6AgIABgICAgICAAAABAID/gAOAAwAAFQAAASEVMxEzESMVITUzESM1MzUhESERMwEAAYCAgID/AICAgP8A/wCAAwCA/wD/AICAAQCAgP0AAwAAAwEAAAAEAAOAAAcAFQAZAAABIRUzFSE1IxEhETMVITUjFSE1IxE7AREzEQGAAQCA/wCAAgCA/wCA/wCAgICAA4CAgID/AP6AgICAgAEA/wABAAAAAwEAAAAEAAOAAAsAGQAdAAABIRUzFSE1IxUhNTMDIREzFSE1IxUhNSMROwERMxECAAGAgP8AgP8AgIACAID/AID/AICAgIADgICAgICA/wD+gICAgIABAP8AAQAAAAQAgAAABAADgAADAAcAFQAZAAABMxUjJTMVIwUhETMVITUjFSE1IxE7AREhEQGAgIABAICA/oACgID/AID+gICAgAEAA4CAgICA/gCAgICAAYD+gAGAAAABAID/gAMAAoAAEQAAASEVIREhFSMRITUzNSE1IxEzAQACAP6AAYCA/wCA/wCAgAKAgP8AgP8AgICAAQAAAAMAgAAAA4ADgAAHABUAGQAAASEVMxUhNSMRIRUzFSEVIRUhNSMROwEVMzUBAAEAgP8AgAGAgP8AAYD9gICAgIADgICAgP8AgICAgIABAICAAAADAIAAAAOAA4AABwAVABkAAAEhFSMVITUzAyEVMxUhFSEVITUjETsBFTM1AYABAID/AICAAYCA/wABgP2AgICAgAOAgICA/wCAgICAgAEAgIAAAwCAAAADgAOAAAsAGQAdAAABIRUzFSE1IxUhNTMRIRUzFSEVIRUhNSMROwEVMzUBAAGAgP8AgP8AgAGAgP8AAYD9gICAgIADgICAgICA/wCAgICAgAEAgIAAAgEAAAADgAOAAAsADwAAASEVMxUhNSMVITUzESERIQGAAYCA/wCA/wCAAQD/AAOAgICAgID/AP4AAAMBAAAAAwADgAADAAcACwAAATMVIyUzFSMFIREhAQCAgAGAgID/AAEA/wADgICAgID9gAADAIAAAAOAA4AACwAXABsAAAEhFTMVITUjFSE1MwMhFTMRIxUhNSMROwERIREBgAGAgP8AgP8AgIACAICA/gCAgIABAAOAgICAgID/AID/AICAAQD/AAEAAAAEAIAAAAOAA4AAAwAHABMAFwAAATMVIyUzFSMFIRUzESMVITUjETsBESERAQCAgAGAgID+gAIAgID+AICAgAEAA4CAgICAgP6AgIABgP6AAYAAAgCAAAAEAAOAAAcAFwAAASEVMxUhNSMDIREhESERMxUhNSMVITUjAQABAID/AICAAQABAAEAgP8AgP6AgAOAgICA/wD+gAGA/oCAgICAAAACAIAAAAQAA4AACwAbAAABIRUzFSE1IxUhNTMBIREhESERMxUhNSMVITUjAYABgID/AID/AID/AAEAAQABAID/AID+gIADgICAgICA/wD+gAGA/oCAgICAAAADAIAAAAOAA4AAAwAHABEAAAEzFSMlMxUjBSERIREhESE1IwEAgIABgICA/gABAAEAAQD9gIADgICAgID+AAIA/YCAAAIAAAEABAADgAAHABMAABEhFSMRIxEjBSERIxEjFSM1IxEjAYCAgIABgAKAgICAgIADgID/AAEAgP6AAQCAgP8AAAAAAAABAAAADAAAACIAAAACAAMAAAB9AAEAfgCAAAIAgQDaAAEABAAAAAIAAAAAAAEAAAAKAB4ALAABREZMVAAIAAQAAAAA//8AAQAAAAFmcmFjAAgAAAABAAAAAQAEAAQAAAABAAgAAQAsAAIACgAgAAIABgAOAH8AAwASABUAfgADABIAFwABAAQAgAADABIAFwABAAIAFAAWAAIAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAA2wAAAAEAAgADAAQABQAGAAcACAAJAAoACwAMAA0ADgAPABAAEQASABMAFAAVABYAFwAYABkAGgAbABwAHQAeAB8AIAAhACIAIwAkACUAJgAnACgAKQAqACsALAAtAC4ALwAwADEAMgAzADQANQA2ADcAOAA5ADoAOwA8AD0APgA/AEAAQQBCAEMARABFAEYARwBIAEkASgBLAEwATQBOAE8AUABRAFIAUwBUAFUAVgBXAFgAWQBaAFsAXABdAF4AXwBgAGEArACjAIQAhQC9AJYA6ACGAI4AiwCdAKkApAECAIoA2gCDAJMA8gDzAI0AlwCIAMMA3gDxAJ4AqgD1APQA9gCiAK0AyQDHAK4AYgBjAJAAZADLAGUAyADKAM8AzADNAM4A6QBmANMA0ADRAK8AZwDwAJEA1gDUANUAaADrAO0AiQBqAGkAawBtAGwAbgCgAG8AcQBwAHIAcwB1AHQAdgB3AOoAeAB6AHkAewB9AHwAuAChAH8AfgCAAIEA7ADuALoAsACxAOQA5QC7AKYA2ADZALIAswC2ALcAxAC0ALUAxQCCAMIAhwCrAMYAvgC/AQMAjApzb2Z0aHlwaGVuBEV1cm8="
+
+    const doc = new jsPDF({
+        orientation: 'p',
+        unit: 'in',
+        format: 'letter',
+        putOnlyUsedFonts: true,
+        floatPrecision: 16 // or "smart", default is 16
+    });
+    doc.setFontSize(16);
+
+    doc.addFileToVFS("kongtext.ttf", base64Font); 
+    doc.addFont("kongtext.ttf", "kongtext", "normal");
+    doc.setFont("kongtext");
+
+    // centered title
+    let pageWidth = doc.internal.pageSize.getWidth();
+    let titleText = "Code Expresso";
+    var textWidth = doc.getTextWidth(titleText);
+    let x = (pageWidth - textWidth) / 2;
+    doc.text(titleText, x, 1);
+
+    // user info
+    doc.setFontSize(12);
+    doc.setLineHeightFactor(1.5);
+    console.log(docSnapUser.data());
+    let username = docSnapUser.data().username;
+    doc.text(username+"\n"+user.email, 1, 2);
+
+    // user progress report
+    let prog1 = docSnapUser.data().completedLevels1.length
+    let prog2 = docSnapUser.data().completedLevels2.length
+    let prog3 = docSnapUser.data().completedLevels3.length
+    let prog4 = docSnapUser.data().completedLevels4.length
+    let prog5 = docSnapUser.data().completedLevels5.length
+    let prog6 = docSnapUser.data().completedLevels6.length
+    let prog7 = docSnapUser.data().completedLevels7.length
+    let prog8 = docSnapUser.data().completedLevels8.length
+    let prog9 = docSnapUser.data().completedLevels9.length
+    let prog10 = docSnapUser.data().completedLevels10.length
+    let overallProg = prog1 + prog2 + prog3 + prog4 + prog5 + prog6 + prog7 + prog8 + prog9 + prog10;
+    let reportText = `Levels Completed: `+overallProg+`/300\n\nFlowcharts & Pseudocode: `+prog1+`/30\nString Manipulation: `+prog2+`/30\nVariables: `+prog3+`/30\nData Types: `+prog4+`/30\nOperators: `+prog5+`/30\nConditional Statements: `+prog6+`/30\nLoops: `+prog7+`/30\nMethods: `+prog8+`/30\nArrays: `+prog9+`/30\nString Manipulation: `+prog10+`/30\n
+    `
+    doc.text(reportText, 1, 3);
+
+    // download pdf
+    doc.save("reports.pdf");
+}
+
 // UPLOAD PROFILE PIC
 document.getElementById("uploadUserProfilePicture").addEventListener('change', async function() {
     if(this.files[0].size > 2097152){
@@ -443,12 +585,12 @@ document.getElementById("saveProfile").addEventListener("click", function(){
         if (user) {
             var username = document.getElementById("nameInput").value;
 
-            updateUser(user.uid, username);
+            updateUser(user, user.uid, username);
         }
     });
 });
 
-async function updateUser(userID, username){
+async function updateUser(user, userID, username){
     let imageElement = document.getElementById("uploadUserProfilePicture");
     if(imageElement.value != "" && imageElement != null){        
         if (imageElement.files && imageElement.files[0]) {
@@ -472,7 +614,9 @@ async function updateUser(userID, username){
                             username: username
                         }).then(function() {
                             displayToast("Success","Profile Updated")
-            
+
+                            //badge
+                            checkForBadges(user);
                         });
                     });
                 }
@@ -483,8 +627,10 @@ async function updateUser(userID, username){
         await updateDoc(userRef, {
             username: username
         }).then(function() {
-            displayToast("Success","Profile Updated")
-            
+            displayToast("Success","Profile Updated");
+
+            //badge
+            checkForBadges(user);
         });
     }
 }

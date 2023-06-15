@@ -337,12 +337,18 @@
                     </div>
                     <!-- Skins -->
                     <div class="contentContainer" id="skins" style="height:100%;display:none;">
-                      <div style="width:100%;display: grid;align-items: center;justify-content: center;">
+                      <div id="skinsContainer" style="width:98%;height:20rem;display:grid;grid-template-columns: 31% 31% 31%;align-items: center;justify-content: space-between;row-gap: 1.5rem;">
+                        <!-- <div class="nes-container is-dark is-centered with-title" style="background-color: #121212;height:17rem;">
+                            <p class="title" style="background-color: #121212;">Default</p>
+                            <img src="https://firebasestorage.googleapis.com/v0/b/codeexpresso-ae5b5.appspot.com/o/themes%2Fdefault.svg?alt=media&token=32d52081-96ae-4796-bfed-f7c7e94a60bb" style="width:100%;">
+                        </div>
+
+                        <div class="nes-container is-dark is-centered with-title" style="background-color: #121212;height:17rem;">
+                          <p class="title" style="background-color: #121212;">BunBun</p>
+                          <img src="../assets/gameImages/bunbun.gif" style="height:100%;">
+                        </div> -->
                         
-                        <i class="nes-bulbasaur"></i>
-                        <span>Coming Soon</span>
                       </div>
-                        
                     </div>
                     <!-- Background -->
                     <div class="contentContainer" id="background" style="height:100%;display:none;overflow:auto;">
@@ -398,52 +404,52 @@
                     <div class="contentContainer" id="reports" style="height:100%;display:none;overflow:auto;">
                       <div style="width:100%;display:flex;justify-content: center;align-items: center;flex-direction: column;">
                         <div style="margin:1rem 0 3rem;display:flex;justify-content: center;align-items: center;flex-direction: column;">
-                          <progress id="levelsCompletedProgress" class="nes-progress is-success" style="width:86rem;" value="0" max="100"></progress>
-                          <span id="levelsCompleted">0/100 Levels Completed</span>
+                          <progress id="levelsCompletedProgress" class="nes-progress is-success" style="width:86rem;" value="0" max="300"></progress>
+                          <span id="levelsCompleted">0/300 Levels Completed</span>
 
                           <div style="height:10rem;margin-top:4rem;width:76rem;">
                             <div style="margin-bottom:2rem;">
-                              <progress id="progress1" class="nes-progress is-success" style="width:76rem;" value="0" max="100"></progress><br>
+                              <progress id="progress1" class="nes-progress is-success" style="width:76rem;" value="0" max="30"></progress><br>
                               <span id="progress1text">Flowcharts & Pseudocode: 0/30</span>
                             </div>
                             <div style="margin-bottom:2rem;">
-                              <progress id="progress2" class="nes-progress is-success" style="width:76rem;" value="0" max="100"></progress><br>
+                              <progress id="progress2" class="nes-progress is-success" style="width:76rem;" value="0" max="30"></progress><br>
                               <span id="progress2text">Basic Syntax: 0/30</span>
                             </div>
                             <div style="margin-bottom:2rem;">
-                              <progress id="progress3" class="nes-progress is-success" style="width:76rem;" value="0" max="100"></progress><br>
+                              <progress id="progress3" class="nes-progress is-success" style="width:76rem;" value="0" max="30"></progress><br>
                               <span id="progress3text">Variables: 0/30</span>
                             </div>
                             <div style="margin-bottom:2rem;">
-                              <progress id="progress4" class="nes-progress is-success" style="width:76rem;" value="0" max="100"></progress><br>
+                              <progress id="progress4" class="nes-progress is-success" style="width:76rem;" value="0" max="30"></progress><br>
                               <span id="progress4text">Data Types: 0/30</span>
                             </div>
                             <div style="margin-bottom:2rem;">
-                              <progress id="progress5" class="nes-progress is-success" style="width:76rem;" value="0" max="100"></progress><br>
+                              <progress id="progress5" class="nes-progress is-success" style="width:76rem;" value="0" max="30"></progress><br>
                               <span id="progress5text">Operators: 0/30</span>
                             </div>
                             <div style="margin-bottom:2rem;">
-                              <progress id="progress6" class="nes-progress is-success" style="width:76rem;" value="0" max="100"></progress><br>
+                              <progress id="progress6" class="nes-progress is-success" style="width:76rem;" value="0" max="30"></progress><br>
                               <span id="progress6text">Conditional Statements: 0/30</span>
                             </div>
                             <div style="margin-bottom:2rem;">
-                              <progress id="progress7" class="nes-progress is-success" style="width:76rem;" value="0" max="100"></progress><br>
+                              <progress id="progress7" class="nes-progress is-success" style="width:76rem;" value="0" max="30"></progress><br>
                               <span id="progress7text">Loops: 0/30</span>
                             </div>
                             <div style="margin-bottom:2rem;">
-                              <progress id="progress8" class="nes-progress is-success" style="width:76rem;" value="0" max="100"></progress><br>
+                              <progress id="progress8" class="nes-progress is-success" style="width:76rem;" value="0" max="30"></progress><br>
                               <span id="progress8text">Methods: 0/30</span>
                             </div>
                             <div style="margin-bottom:2rem;">
-                              <progress id="progress9" class="nes-progress is-success" style="width:76rem;" value="0" max="100"></progress><br>
+                              <progress id="progress9" class="nes-progress is-success" style="width:76rem;" value="0" max="30"></progress><br>
                               <span id="progress9text">Arrays: 0/30</span>
                             </div>
                             <div style="margin-bottom:2rem;">
-                              <progress id="progress10" class="nes-progress is-success" style="width:76rem;" value="0" max="100"></progress><br>
+                              <progress id="progress10" class="nes-progress is-success" style="width:76rem;" value="0" max="30"></progress><br>
                               <span id="progress10text">String Manipulation: 0/30</span>
                             </div>
                             <div style="margin-bottom:2rem;">
-                              <button type="button" class="nes-btn is-primary btn-sound">Print</button>
+                              <button type="button" id="print" class="nes-btn is-primary btn-sound">Print</button>
                             </div>
                           </div>
                         </div>
@@ -481,9 +487,10 @@
 
                           <!-- 2FA -->
                           <div class="nes-container is-dark with-title" style="margin:4rem auto 1rem;width:90%">
-                            <p class="title" id="contentTitle" style="background:#121212;">Two-factor Authentication</p>
-                            
+                            <p class="title" id="contentTitle" style="background:#121212;">Two-factor Authentication (2FA)</p>
                             <p><i class="nes-icon is-small star"></i> Secure your account by linking your phone through SMS verification</p>
+                            <p> Two-factor Authentication (2FA) will add an extra layer of security by requiring a One-time password (OTP) sent to your phone whenever you log-in.</p>
+
                             <style>
                               .nes-icon.close::before{
                                 color:#c62020;

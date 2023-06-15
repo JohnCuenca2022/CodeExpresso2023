@@ -65,6 +65,25 @@
       </div>
     </div>
 
+    <!-- Level Complete Modal -->
+    <div class="modal fade custom" id="levelCompleteModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header border-0">
+            <h3 class="modal-title" id="exampleModalLongTitle"></h3>
+          </div>
+          <div class="modal-body border-0">
+            <h3 class="modal-title" id="exampleModalLongTitle" style="text-align:center;">Level Complete</h3><br>
+            <h5 class="modal-title" id="exampleModalLongTitle" style="text-align:center;">Earned 15<i class="nes-icon coin is-small"></i></h5>
+          </div>
+          <div class="modal-footer border-0">
+            <img id="loading_gif" src="../assets/images/loading_gif.gif" style="width:3rem;margin:0 auto 2rem">
+            <button type="button" class="nes-btn is-primary nes-pointer btn-sound" id="nextLevelButton" style="width:22rem;margin:0 auto 2rem;display:none;">Go to next level -></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- navbar -->
     <nav class="nes-container is-rounded is-dark" style="background-color: #121212;"id="navbar">
       <div class="nav-section back-button">
@@ -88,50 +107,43 @@
     </nav>
 
     <main style="height:40rem;width:100%;display:grid;grid-template-columns: 33.33% 33.33% 33.33%;">
-      <!-- lesson -->
+      <!-- graphic -->
       <div class="nes-container is-dark with-title" style="background-color: #121212;margin-right:-2px;">
-        <p class="title" style="background:#121212;">Level 1-1</p>
-        <div style="overflow-y: scroll;overflow-x: hidden;">
-          <span>asdf</span>
-        </div>
+        <p class="title" style="background:#121212;">Level 1-1</p>    
       </div>
 
-      <!-- compiler -->
+      <!-- lesson -->
       <div class="nes-container is-dark with-title" style="margin-left:-2px;margin-right:-2px;padding:0;display:flex;flex-direction: column;">
-        <div style="flex-grow: 1;">
-            <div id="editorContainer">
-                <div class="container">
-                  <div class="row">
-                      <div class="col">
-                          <pre id="editor" style="min-width: 500px;min-height: 400px;">
-                          </pre>
-                      </div>
-                  </div>
-                </div>
-              </div>
-        </div>
-          <!-- <script type="module" src="../src/compiler.js">
-            window.onload = function () {
-                codeEditor();
-            };
+        
+        <div style="overflow-y: scroll;overflow-x: hidden;height: 45rem;">
+          <span style="font-family:'VT323','sans-serif';font-size: 2rem;line-height:2rem;">
+            <p><i class="nes-icon is-small star"></i> Welcome to your first lesson!</p><br>
+            <p>Through the next few levels, you'll learn all about how to create and use <span class="nes-text is-primary">Flowcharts</span> and <span class="nes-text is-primary">Pseudocode</span>.</p>
+            <p>When broken down, a computer program is a series of tasks or processes that a computer performs to achieve a goal.</p>
+            <p>Before a programmer starts writing actual code, it is best for them to think about the processes that are needed in the program.</p>
+            <p>This is where you would write pseudocode. From the word <em>pseudo</em> meaning fake or imitating, a programmer imitates coding the tasks needed to be completed without using actual code <span style="text-decoration: underline;" class="nes-text is-warning" title="Syntax in coding refers to the rules for writing code correctly. It defines the structure and format that must be followed for the code to work properly.">syntax</span>.</p>
+            <p>Think of pseudocode as like a to-do list of tasks that need to be completed. For example, to make a cup of coffee, one must:</p>
+            
+            <div class="lists">
+              <ul class="nes-list is-circle is-dark">
+                <li>Boil water.</li>
+                <li>Get a cup.</li>
+                <li>Put coffee in the cup.</li>
+                <li>Pour the water in the cup.</li>
+                <li>Get a teaspoon.</li>
+                <li>Stir the water in the cup.</li>
+              </ul>
+            </div>
 
-          </script> -->
-          <script>
-            // window.onload = function () {
-            //     codeEditor();
-            // };
-          </script>
-        <div class="nes-container is-dark with-title" style="height:12rem;margin-left:-4px;margin-right:-4px;" id="input">
-          <p class="title" style="background:#121212;">Input</p>
-          <textarea style="border:none;height:100%;width:100%;overflow:auto;background-color:#121212;color:#faf9f6;font-family:'VT323','sans-serif';font-size:1.5rem;" id="inputArea">
-
-          </textarea>
-        </div>
-        <div class="nes-container is-dark with-title" style="height:12rem;margin-left:-4px;margin-right:-4px;margin-top:-8px;margin-bottom:-4px;position: relative;" id="output">
-          <p class="title" style="background:#121212;">Output</p>
-          <button id="run" type="button" class="nes-btn is-success" style="position:absolute;right:0;top:-1.2rem">Run</button>
-            <pre style="height:100%;overflow:auto;font-family:'VT323','sans-serif';font-size:1.5rem;" id="ans">
-            </pre>
+            <p>We've just created pseudocode on how to make a cup of coffee! It's also helpful to visualize these tasks. That's where Flowcharts come in.</p>
+            <p>Flowcharts provide a visual representation of pseudocode that helps programmers better understand the behavior of a program.</p>
+            <p>Here's our pseudocode turned into a flowchart:</p>
+            <div style="width: 100%;display:grid;justify-items: center;margin:1rem 0 1rem">
+              <img src="../assets/gameImages/lessonImages/flowchart1-1.png">
+            </div>
+            <p>The start and end of a flowchart use an oval symbol and a process uses a rectangle symbol.</p>
+            <p>The directional arrows represent the flow or sequence. Flowcharts are organized to be read left-to-right and flowing downwards.</p>
+          </span>
         </div>
       </div>
 
